@@ -32,7 +32,6 @@ use pocketmine\entity\Arrow;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\Boat;
 use pocketmine\entity\Effect;
-use pocketmine\entity\EnderPearl;
 use pocketmine\entity\Entity;
 use pocketmine\entity\FishingHook;
 use pocketmine\entity\Human;
@@ -40,8 +39,6 @@ use pocketmine\entity\Item as DroppedItem;
 use pocketmine\entity\Living;
 use pocketmine\entity\Minecart;
 use pocketmine\entity\Projectile;
-use pocketmine\entity\ThrownExpBottle;
-use pocketmine\entity\ThrownPotion;
 use pocketmine\event\entity\EntityCombustByEntityEvent;
 use pocketmine\event\entity\EntityDamageByBlockEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
@@ -265,8 +262,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 	/** @var  Position */
 	private $shouldResPos;
 
-	/** @var FishingHook */
-	public $fishingHook = null;
+    private $hookEID = -1;
 
 	/** @var Position[] */
 	public $selectedPos = [];
@@ -278,45 +274,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 
 	/** @var int */
 	protected $lastEnderPearlUse = 0;
-
-	public function linkHookToPlayer(FishingHook $entity){
-		if($entity->isAlive()){
-			$this->setFishingHook($entity);
-			$pk = new EntityEventPacket();
-			$pk->eid = $this->getFishingHook()->getId();
-			$pk->event = EntityEventPacket::FISH_HOOK_POSITION;
-			$this->server->broadcastPacket($this->level->getPlayers(), $pk);
-			return true;
-		}
-		return false;
-	}
-
-	public function unlinkHookFromPlayer(){
-		if($this->fishingHook instanceof FishingHook){
-			$pk = new EntityEventPacket();
-			$pk->eid = $this->fishingHook->getId();
-			$pk->event = EntityEventPacket::FISH_HOOK_TEASE;
-			$this->server->broadcastPacket($this->level->getPlayers(), $pk);
-			$this->setFishingHook();
-			return true;
-		}
-		return false;
-	}
-
-	public function isFishing(){
-		return ($this->fishingHook instanceof FishingHook);
-	}
-
-	public function getFishingHook(){
-		return $this->fishingHook;
-	}
-
-	public function setFishingHook(FishingHook $entity = null){
-		if($entity == null and $this->fishingHook instanceof FishingHook){
-			$this->fishingHook->close();
-		}
-		$this->fishingHook = $entity;
-	}
 
 	public function getItemInHand(){
 		return $this->inventory->getItemInHand();
@@ -1614,12 +1571,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 					}else{
 						$this->level->addEntityMovement($this->x >> 4, $this->z >> 4, $this->getId(), $this->x, $this->y + $this->getEyeHeight(), $this->z, $this->yaw, $this->pitch, $this->yaw);
 					}
-
-					if($this->fishingHook instanceof FishingHook){
-						if($this->distance($this->fishingHook) > 33 or $this->inventory->getItemInHand()->getId() !== Item::FISHING_ROD){
-							$this->setFishingHook();
-						}
-					}
 				}
 			}
 
@@ -1831,15 +1782,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 		$this->checkTeleportPosition();
 
 		$this->timings->stopTiming();
-
-		//TODO: remove this workaround (broken client MCPE 1.0.0)
-		if(count($this->messageQueue) > 0){
-			$pk = new TextPacket();
-			$pk->type = TextPacket::TYPE_RAW;
-			$pk->message = implode("\n", $this->messageQueue);
-			$this->dataPacket($pk);
-			$this->messageQueue = [];
-		}
 
 		return true;
 	}
@@ -2217,10 +2159,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 
 				$newPos = new Vector3($packet->x, $packet->y - $this->getEyeHeight(), $packet->z);
 
-				if($newPos->distanceSquared($this) == 0 and ($packet->yaw % 360) === $this->yaw and ($packet->pitch % 360) === $this->pitch){ //player hasn't moved, just client spamming packets
-					break;
-				}
-
 				$revert = false;
 				if(!$this->isAlive() or $this->spawned !== true){
 					$revert = true;
@@ -2349,8 +2287,8 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 							new DoubleTag("", cos($this->yaw / 180 * M_PI) * cos($this->pitch / 180 * M_PI)),
 						]),
 						"Rotation" => new ListTag("Rotation", [
-							new FloatTag("", $this->yaw),
-							new FloatTag("", $this->pitch),
+                            new FloatTag("", ($this->yaw > 180 ? 360 : 0) - $this->yaw),
+                            new FloatTag("", -$this->pitch),
 						]),
 					]);
 
@@ -2359,15 +2297,18 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 
 					switch($item->getId()){
 						case Item::FISHING_ROD:
-							$this->server->getPluginManager()->callEvent($ev = new PlayerUseFishingRodEvent($this, ($this->isFishing() ? PlayerUseFishingRodEvent::ACTION_STOP_FISHING : PlayerUseFishingRodEvent::ACTION_START_FISHING)));
-							if(!$ev->isCancelled()){
-								if(!$this->isFishing()){
-									$f = 0.6;
-									$entity = Entity::createEntity("FishingHook", $this->getLevel(), $nbt, $this);
-									$entity->setMotion($entity->getMotion()->multiply($f));
-								}
-							}
-							$this->setFishingHook($entity);
+                            $this->server->getPluginManager()->callEvent($ev = new PlayerUseFishingRodEvent($this, ($this->isFishing() ? PlayerUseFishingRodEvent::ACTION_STOP_FISHING : PlayerUseFishingRodEvent::ACTION_START_FISHING)));
+                            $f = 1.2;
+                            $entity = Entity::createEntity("FishingHook", $this->getLevel(), $nbt, $this);
+                            $entity->setMotion($entity->getMotion()->multiply($f));
+                            if(!$ev->isCancelled()) {
+                                if ($this->isFishing()) {
+                                    $this->reelRod(false);
+                                }
+                            }else{
+                                $entity->kill();
+                            }
+                            $this->hookEID = $entity->getId();
 							$reduceCount = false;
 							break;
 						case Item::SNOWBALL:
@@ -2526,7 +2467,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 									$this->inventory->sendContents($this);
 								}else{
 									$ev->getProjectile()->setMotion($ev->getProjectile()->getMotion()->multiply($ev->getForce()));
-									if($this->isSurvival()){
+									if($this->isSurvival() && !$bow->hasEnchantment(22)){
 										$this->inventory->removeItem($arrow);
 										$bow->setDamage($bow->getDamage() + 1);
 										if($bow->getDamage() >= 385){
@@ -2634,7 +2575,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 						}else{
 							$this->setSprinting(true);
 						}
-						break 2;
+						return true;
 					case PlayerActionPacket::ACTION_STOP_SPRINT:
 						$ev = new PlayerToggleSprintEvent($this, false);
 						$this->server->getPluginManager()->callEvent($ev);
@@ -2643,7 +2584,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 						}else{
 							$this->setSprinting(false);
 						}
-						break 2;
+						return true;
 					case PlayerActionPacket::ACTION_START_SNEAK:
 						$ev = new PlayerToggleSneakEvent($this, true);
 						$this->server->getPluginManager()->callEvent($ev);
@@ -3369,9 +3310,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 		return false;
 	}
 
-	/** @var string[] */
-	private $messageQueue = [];
-
 	/**
 	 * @param Item $item
 	 *
@@ -3422,14 +3360,11 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 			$message = $message->getText();
 		}
 
-		//TODO: Remove this workaround (broken client MCPE 1.0.0)
-		$this->messageQueue[] = $this->server->getLanguage()->translateString($message);
-		/*
 		$pk = new TextPacket();
 		$pk->type = TextPacket::TYPE_RAW;
 		$pk->message = $this->server->getLanguage()->translateString($message);
 		$this->dataPacket($pk);
-		*/
+
 	}
 
 	public function sendTranslation($message, array $parameters = []){
@@ -3568,13 +3503,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 				$this->directDataPacket($pk);
 			}
 
-			//$this->setLinked();
-
-			if($this->fishingHook instanceof FishingHook){
-				$this->fishingHook->close();
-				$this->fishingHook = null;
-			}
-
 			$this->removeEffect(Effect::HEALTH_BOOST);
 
 			$this->connected = false;
@@ -3599,6 +3527,9 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 			foreach($this->usedChunks as $index => $d){
 				Level::getXZ($index, $chunkX, $chunkZ);
 				$this->level->unregisterChunkLoader($this, $chunkX, $chunkZ);
+                foreach($this->level->getChunkEntities($chunkX, $chunkZ) as $entity){
+                    $entity->despawnFrom($this, false);
+                }
 				unset($this->usedChunks[$index]);
 			}
 
@@ -3634,6 +3565,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 			$this->loadQueue = [];
 			$this->hasSpawned = [];
 			$this->spawnPosition = null;
+            $this->forceMovement = null;
 
 			if($this->server->dserverConfig["enable"] and $this->server->dserverConfig["queryAutoUpdate"]) $this->server->updateQuery();
 		}
@@ -3854,14 +3786,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 		$pk->y = $pos->y;
 		$pk->z = $pos->z;
 		$this->dataPacket($pk);
-	}
-
-	public function setHealth($amount){
-		parent::setHealth($amount);
-		if($this->spawned === true){
-			$this->foodTick = 0;
-			$this->getAttributeMap()->getAttribute(Attribute::HEALTH)->setMaxValue($this->getMaxHealth())->setValue($amount, true);
-		}
 	}
 
 	public function attack($damage, EntityDamageEvent $source){
@@ -4142,6 +4066,25 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 	public function isLoaderActive(){
 		return $this->isConnected();
 	}
+
+    public function reelRod($forced = true){
+        if($this->isFishing()){
+            if($forced){
+                $this->getHookEntity()->close();
+            }else{
+                $this->getHookEntity()->retrieve();
+            }
+        }
+        $this->hookEID = -1;
+    }
+
+    public function getHookEntity(){
+        return $this->getLevel()->getEntity($this->hookEID);
+    }
+
+    public function isFishing(){
+        return $this->hookEID !== -1;
+    }
 
 	/**
 	 * @param Effect
