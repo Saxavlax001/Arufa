@@ -1479,14 +1479,6 @@ class Server{
 
 		$this->allowInventoryCheats = $this->getAdvancedProperty("inventory.allow-cheats", false);
 	}
-	
-	/**
-	 * @deprecated Use SynapsePM plugin instead
-	 * @return bool
-	 */
-	public function isSynapseEnabled() : bool {
-		return $this->getSynapse() !== null;
-	}
 
 	/**
 	 * @return int
