@@ -304,7 +304,7 @@ class Server{
 	 * @return string
 	 */
 	public function getName() : string{
-		return "Genisys";
+		return "Arufa";
 	}
 
 	/**
@@ -376,21 +376,6 @@ class Server{
 	 */
 	public function getApiVersion(){
 		return \pocketmine\API_VERSION;
-	}
-
-
-	/**
-	 * @return string
-	 */
-	public function getiTXApiVersion(){
-		return \pocketmine\GENISYS_API_VERSION;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getGeniApiVersion(){
-		return \pocketmine\GENISYS_API_VERSION;
 	}
 
 	/**
@@ -1444,15 +1429,6 @@ class Server{
 	}
 
 	public function about(){
-		$string = '
-
-	§3Genisys§f is a custom version of §bPocketMine-MP§f, modified by §5iTX Technologies LLC§f
-	Version: §6' . $this->getPocketMineVersion() . '§f
-	Target client version: §b' . ProtocolInfo::MINECRAFT_VERSION . '§f
-	Source code: §dhttps://github.com/iTXTech/Genisys§f
-	';
-	
-		$this->getLogger()->info($string);
 	}
 
 	public function loadAdvancedConfig(){
@@ -1610,17 +1586,17 @@ class Server{
 			}
 
 			$lang = $this->getProperty("settings.language", BaseLang::FALLBACK_LANGUAGE);
-			if(file_exists($this->filePath . "src/pocketmine/resources/genisys_$lang.yml")){
-				$content = file_get_contents($file = $this->filePath . "src/pocketmine/resources/genisys_$lang.yml");
+			if(file_exists($this->filePath . "src/pocketmine/resources/arufa_$lang.yml")){
+				$content = file_get_contents($file = $this->filePath . "src/pocketmine/resources/arufa_$lang.yml");
 			}else{
-				$content = file_get_contents($file = $this->filePath . "src/pocketmine/resources/genisys_eng.yml");
+				$content = file_get_contents($file = $this->filePath . "src/pocketmine/resources/arufa_eng.yml");
 			}
 
-			if(!file_exists($this->dataPath . "genisys.yml")){
-				@file_put_contents($this->dataPath . "genisys.yml", $content);
+			if(!file_exists($this->dataPath . "arufa.yml")){
+				@file_put_contents($this->dataPath . "arufa.yml", $content);
 			}
 			$internelConfig = new Config($file, Config::YAML, []);
-			$this->advancedConfig = new Config($this->dataPath . "genisys.yml", Config::YAML, []);
+			$this->advancedConfig = new Config($this->dataPath . "arufa.yml", Config::YAML, []);
 			$cfgVer = $this->getAdvancedProperty("config.version", 0, $internelConfig);
 			$advVer = $this->getAdvancedProperty("config.version", 0);
 
@@ -1865,7 +1841,7 @@ class Server{
 			]), $this->dserverConfig["timer"]);
 
 			if($cfgVer > $advVer){
-				$this->logger->notice("Your genisys.yml needs update");
+				$this->logger->notice("Your arufa.yml needs update");
 				$this->logger->notice("Current Version: $advVer   Latest Version: $cfgVer");
 			}
 
