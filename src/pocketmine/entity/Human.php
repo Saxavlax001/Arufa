@@ -592,6 +592,12 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 
 	public function saveNBT(){
 		parent::saveNBT();
+
+        $this->namedtag->foodLevel = new IntTag("foodLevel", $this->getFood());
+        $this->namedtag->foodExhaustionLevel = new FloatTag("foodExhaustionLevel", $this->getExhaustion());
+        $this->namedtag->foodSaturationLevel = new FloatTag("foodSaturationLevel", $this->getSaturation());
+        $this->namedtag->foodTickTimer = new IntTag("foodTickTimer", $this->foodTickTimer);
+
 		$this->namedtag->Inventory = new ListTag("Inventory", []);
 		$this->namedtag->Inventory->setTagType(NBT::TAG_Compound);
 		if($this->inventory !== null){
@@ -602,7 +608,9 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 				$item = $this->inventory->getItem($inventorySlotIndex);
 				$tag = $item->nbtSerialize($slot);
 				$tag->TrueSlot = new ByteTag("TrueSlot", $inventorySlotIndex);
-				$this->namedtag->Inventory[$slot] = $tag;
+                if($item->getId() !== ItemItem::AIR){
+                    $this->namedtag->Inventory[$slot] = $item->nbtSerialize($slot);
+                }
 			}
 
 			//Normal inventory
@@ -687,16 +695,6 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 			if(!($this instanceof Player)){
 				$this->server->removePlayerListData($this->getUniqueId(), [$player]);
 			}
-		}
-	}
-
-	public function despawnFrom(Player $player){
-		if(isset($this->hasSpawned[$player->getLoaderId()])){
-
-			$pk = new RemoveEntityPacket();
-			$pk->eid = $this->getId();
-			$player->dataPacket($pk);
-			unset($this->hasSpawned[$player->getLoaderId()]);
 		}
 	}
 

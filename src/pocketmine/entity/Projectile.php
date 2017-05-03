@@ -73,6 +73,36 @@ abstract class Projectile extends Entity{
 		return $entity instanceof Living and !$this->onGround;
 	}
 
+    public function getResultDamage() : int{
+        return ceil(sqrt($this->motionX ** 2 + $this->motionY ** 2 + $this->motionZ ** 2) * $this->damage);
+    }
+
+    public function onCollideWithEntity(Entity $entity){
+        $this->server->getPluginManager()->callEvent(new ProjectileHitEvent($this));
+
+        $damage = $this->getResultDamage();
+
+        if($this->shootingEntity === null){
+            $ev = new EntityDamageByEntityEvent($this, $entity, EntityDamageEvent::CAUSE_PROJECTILE, $damage);
+        }else{
+            $ev = new EntityDamageByChildEntityEvent($this->shootingEntity, $this, $entity, EntityDamageEvent::CAUSE_PROJECTILE, $damage);
+        }
+
+        $entity->attack($ev->getFinalDamage(), $ev);
+
+        $this->hadCollision = true;
+
+        if($this->fireTicks > 0){
+            $ev = new EntityCombustByEntityEvent($this, $entity, 5);
+            $this->server->getPluginManager()->callEvent($ev);
+            if(!$ev->isCancelled()){
+                $entity->setOnFire($ev->getDuration());
+            }
+        }
+
+        $this->close();
+    }
+
 	public function saveNBT(){
 		parent::saveNBT();
 		$this->namedtag->Age = new ShortTag("Age", $this->age);
@@ -135,43 +165,8 @@ abstract class Projectile extends Entity{
 
 			if($movingObjectPosition !== null){
 				if($movingObjectPosition->entityHit !== null){
-
-					$this->server->getPluginManager()->callEvent(new ProjectileHitEvent($this));
-
-					$motion = sqrt($this->motionX ** 2 + $this->motionY ** 2 + $this->motionZ ** 2);
-					$damage = ceil($motion * $this->damage);
-
-					if($this instanceof Arrow and $this->isCritical()){
-						$damage += mt_rand(0, (int) ($damage / 2) + 1);
-					}
-
-					if($this->shootingEntity === null){
-						$ev = new EntityDamageByEntityEvent($this, $movingObjectPosition->entityHit, EntityDamageEvent::CAUSE_PROJECTILE, $damage);
-					}else{
-						$ev = new EntityDamageByChildEntityEvent($this->shootingEntity, $this, $movingObjectPosition->entityHit, EntityDamageEvent::CAUSE_PROJECTILE, $damage);
-					}
-
-					if($movingObjectPosition->entityHit->attack($ev->getFinalDamage(), $ev) === true){
-						if($this instanceof Arrow and $this->getPotionId() != 0){
-							foreach(Potion::getEffectsById($this->getPotionId() - 1) as $effect){
-								$movingObjectPosition->entityHit->addEffect($effect->setDuration($effect->getDuration() / 8));
-							}
-						}
-						$ev->useArmors();
-					}
-
-					$this->hadCollision = true;
-
-					if($this->fireTicks > 0){
-						$ev = new EntityCombustByEntityEvent($this, $movingObjectPosition->entityHit, 5);
-						$this->server->getPluginManager()->callEvent($ev);
-						if(!$ev->isCancelled()){
-							$movingObjectPosition->entityHit->setOnFire($ev->getDuration());
-						}
-					}
-
-					$this->kill();
-					return true;
+                    $this->onCollideWithEntity($movingObjectPosition->entityHit);
+                    return false;
 				}
 			}
 
@@ -185,6 +180,7 @@ abstract class Projectile extends Entity{
 				$this->motionZ = 0;
 
 				$this->server->getPluginManager()->callEvent(new ProjectileHitEvent($this));
+                return false;
 			}elseif(!$this->isCollided and $this->hadCollision){
 				$this->hadCollision = false;
 			}

@@ -110,4 +110,12 @@ class CompoundTag extends NamedTag implements \ArrayAccess{
 		}
 		return $str . "}";
 	}
+
+    public function __clone(){
+        foreach($this as $key => $tag){
+            if($tag instanceof Tag){
+                $this->{$key} = clone $tag;
+            }
+        }
+    }
 }

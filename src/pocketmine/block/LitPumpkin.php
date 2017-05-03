@@ -31,7 +31,7 @@ use pocketmine\nbt\tag\FloatTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\Player;
 
-class LitPumpkin extends Solid implements SolidLight{
+class LitPumpkin extends Pumpkin{
 
 	protected $id = self::LIT_PUMPKIN;
 

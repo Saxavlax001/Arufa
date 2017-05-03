@@ -172,7 +172,7 @@ class SimpleCommandMap implements CommandMap{
 		if($label === null){
 			$label = $command->getName();
 		}
-		$label = strtolower(trim($label));
+		$label = trim($label);
 		
 		//Check if command was disabled in config and for override
 		if(!(($this->commandConfig[$label] ?? $this->commandConfig["default"] ?? true) or $overrideConfig)){
