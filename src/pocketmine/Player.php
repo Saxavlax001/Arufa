@@ -33,7 +33,6 @@ use pocketmine\entity\Attribute;
 use pocketmine\entity\Boat;
 use pocketmine\entity\Effect;
 use pocketmine\entity\Entity;
-use pocketmine\entity\FishingHook;
 use pocketmine\entity\Human;
 use pocketmine\entity\Item as DroppedItem;
 use pocketmine\entity\Living;
@@ -73,7 +72,6 @@ use pocketmine\event\player\PlayerTextPreSendEvent;
 use pocketmine\event\player\PlayerToggleFlightEvent;
 use pocketmine\event\player\PlayerToggleSneakEvent;
 use pocketmine\event\player\PlayerToggleSprintEvent;
-use pocketmine\event\player\PlayerUseFishingRodEvent;
 use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\event\server\DataPacketSendEvent;
 use pocketmine\event\TextContainer;
@@ -2296,21 +2294,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 					$reduceCount = true;
 
 					switch($item->getId()){
-						case Item::FISHING_ROD:
-                            $this->server->getPluginManager()->callEvent($ev = new PlayerUseFishingRodEvent($this, ($this->isFishing() ? PlayerUseFishingRodEvent::ACTION_STOP_FISHING : PlayerUseFishingRodEvent::ACTION_START_FISHING)));
-                            $f = 1.2;
-                            $entity = Entity::createEntity("FishingHook", $this->getLevel(), $nbt, $this);
-                            $entity->setMotion($entity->getMotion()->multiply($f));
-                            if(!$ev->isCancelled()) {
-                                if ($this->isFishing()) {
-                                    $this->reelRod(false);
-                                }
-                            }else{
-                                $entity->kill();
-                            }
-                            $this->hookEID = $entity->getId();
-							$reduceCount = false;
-							break;
 						case Item::SNOWBALL:
 							$f = 1.5;
 							$entity = Entity::createEntity("Snowball", $this->getLevel(), $nbt, $this);
@@ -2575,7 +2558,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 						}else{
 							$this->setSprinting(true);
 						}
-						return true;
+						return;
 					case PlayerActionPacket::ACTION_STOP_SPRINT:
 						$ev = new PlayerToggleSprintEvent($this, false);
 						$this->server->getPluginManager()->callEvent($ev);
@@ -2584,7 +2567,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 						}else{
 							$this->setSprinting(false);
 						}
-						return true;
+						return;
 					case PlayerActionPacket::ACTION_START_SNEAK:
 						$ev = new PlayerToggleSneakEvent($this, true);
 						$this->server->getPluginManager()->callEvent($ev);
@@ -2593,7 +2576,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 						}else{
 							$this->setSneaking(true);
 						}
-						break 2;
+						return;
 					case PlayerActionPacket::ACTION_STOP_SNEAK:
 						$ev = new PlayerToggleSneakEvent($this, false);
 						$this->server->getPluginManager()->callEvent($ev);
@@ -2602,7 +2585,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 						}else{
 							$this->setSneaking(false);
 						}
-						break 2;
+						return;
 					default:
 						assert(false, "Unhandled player action " . $packet->action . " from " . $this->getName());
 				}
@@ -4066,25 +4049,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 	public function isLoaderActive(){
 		return $this->isConnected();
 	}
-
-    public function reelRod($forced = true){
-        if($this->isFishing()){
-            if($forced){
-                $this->getHookEntity()->close();
-            }else{
-                $this->getHookEntity()->retrieve();
-            }
-        }
-        $this->hookEID = -1;
-    }
-
-    public function getHookEntity(){
-        return $this->getLevel()->getEntity($this->hookEID);
-    }
-
-    public function isFishing(){
-        return $this->hookEID !== -1;
-    }
 
 	/**
 	 * @param Effect

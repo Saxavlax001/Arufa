@@ -1,7 +1,7 @@
-# Main configuration file for PocketMine-MP
-# These settings are the ones that cannot be included in server.properties
-# Some of these settings are safe, others can break your server if modified incorrectly
-# New settings/defaults won't appear automatically on this file when upgrading.
+  #Main configuration file for PocketMine-MP
+  #These settings are the ones that cannot be included in server.properties
+  #Some of these settings are safe, others can break your server if modified incorrectly
+  #New settings/defaults won't appear automatically on this file when upgrading.zz
 
 settings:
  #Three-letter language code for server-side localization
