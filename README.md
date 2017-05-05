@@ -1,6 +1,6 @@
 ![img](http://i.imgur.com/lRJl9gu.jpg)
 #
-### Arufa is a Minecraft: Pocket Edition server software written in PHP which is based off PMMP and Genisys. Some code is enhanced and rewritten by [AppleDevelops](github.com/AppleDevelops).
+### Arufa is a Minecraft: Pocket Edition server software written in PHP which is based off PMMP and Genisys. Some code is enhanced and rewritten by [AppleDevelops](https://github.com/AppleDevelops).
 #
 #### Wanna help us out? Submit a pull request!
 #
