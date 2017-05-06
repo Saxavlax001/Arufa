@@ -126,7 +126,7 @@ class McRegion extends BaseLevelProvider{
 	public function nbtDeserialize(string $data){
 		$nbt = new NBT(NBT::BIG_ENDIAN);
 		try{
-			$nbt->readCompressed($data);
+			$nbt->readCompressed($data, ZLIB_ENCODING_DEFLATE);
 
 			$chunk = $nbt->getData();
 
@@ -251,9 +251,9 @@ class McRegion extends BaseLevelProvider{
 			"initialized" => new ByteTag("initialized", 1),
 			"GameType" => new IntTag("GameType", 0),
 			"generatorVersion" => new IntTag("generatorVersion", 1), //2 in MCPE
-			"SpawnX" => new IntTag("SpawnX", 128),
+			"SpawnX" => new IntTag("SpawnX", 256),
 			"SpawnY" => new IntTag("SpawnY", 70),
-			"SpawnZ" => new IntTag("SpawnZ", 128),
+			"SpawnZ" => new IntTag("SpawnZ", 256),
 			"version" => new IntTag("version", 19133),
 			"DayTime" => new IntTag("DayTime", 0),
 			"LastPlayed" => new LongTag("LastPlayed", microtime(true) * 1000),
@@ -309,10 +309,10 @@ class McRegion extends BaseLevelProvider{
 
 	public function saveChunk(int $chunkX, int $chunkZ) : bool{
 		if($this->isChunkLoaded($chunkX, $chunkZ)){
-			$chunk = $this->getChunk($chunkX, $chunkZ);
-			if(!$chunk->isGenerated()){
-				throw new \InvalidStateException("Cannot save un-generated chunk");
-			}
+            $chunk = $this->getChunk($chunkX, $chunkZ);
+            if(!$chunk->isGenerated()){
+                throw new \InvalidStateException("Cannot save un-generated chunk");
+            }
 			$this->getRegion($chunkX >> 5, $chunkZ >> 5)->writeChunk($chunk);
 
 			return true;
@@ -364,7 +364,7 @@ class McRegion extends BaseLevelProvider{
 
 	public function unloadChunks(){
 		foreach($this->chunks as $chunk){
-			$this->unloadChunk($chunk->getX(), $chunk->getZ(), false);
+			$this->unloadChunk($chunk->getX(), $chunk->getZ());
 		}
 		$this->chunks = [];
 	}

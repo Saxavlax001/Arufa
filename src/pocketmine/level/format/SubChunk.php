@@ -47,11 +47,11 @@ class SubChunk{
 	}
 
 	public function isEmpty() : bool{
-	    return (
+		return (
             substr_count($this->ids, "\x00") === 4096 and
             substr_count($this->skyLight, "\xff") === 2048 and
             substr_count($this->blockLight, "\x00") === 2048
-        );
+    );
 	}
 
 	public function getBlockId(int $x, int $y, int $z) : int{

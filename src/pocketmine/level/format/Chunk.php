@@ -81,15 +81,16 @@ class Chunk{
 	/** @var CompoundTag[] */
 	protected $NBTentities = [];
 
-	/**
-	 * @param int           $chunkX
-	 * @param int           $chunkZ
-	 * @param SubChunk[]    $subChunks
-	 * @param CompoundTag[] $entities
-	 * @param CompoundTag[] $tiles
-	 * @param string        $biomeIds
-	 * @param int[]         $heightMap
-	 */
+    /**
+     * @param int $chunkX
+     * @param int $chunkZ
+     * @param SubChunk[] $subChunks
+     * @param CompoundTag[] $entities
+     * @param CompoundTag[] $tiles
+     * @param string $biomeIds
+     * @param int[] $heightMap
+     * @internal param LevelProvider $provider
+     */
 	public function __construct(int $chunkX, int $chunkZ, array $subChunks = [], array $entities = [], array $tiles = [], string $biomeIds = "", array $heightMap = []){
 		$this->x = $chunkX;
 		$this->z = $chunkZ;
@@ -307,7 +308,7 @@ class Chunk{
 	 * @param int $level 0-15
 	 */
 	public function setBlockSkyLight(int $x, int $y, int $z, int $level){
-		if($this->getSubChunk($y >> 4, true)->setBlockSkyLight($x, $y & 0x0f, $z, $level)){
+		if($this->getSubChunk($y >> 4)->setBlockSkyLight($x, $y & 0x0f, $z, $level)){
 			$this->hasChanged = true;
 		}
 	}
@@ -322,7 +323,7 @@ class Chunk{
 	 * @return int 0-15
 	 */
 	public function getBlockLight(int $x, int $y, int $z) : int{
-		return $this->getSubChunk($y >> 4)->getBlockLight($x, $y & 0x0f, $z);
+		return $this->getSubChunk($y >> 4, true)->getBlockLight($x, $y & 0x0f, $z);
 	}
 
 	/**
@@ -420,8 +421,6 @@ class Chunk{
 
 				$y = ($this->getHighestSubChunkIndex() + 1) << 4;
 
-				//TODO: replace a section of the array with a string in one call to improve performance
-
 				for(; $y > $heightMap; --$y){
 					$this->setBlockSkyLight($x, $y, $z, 15);
 				}
@@ -429,9 +428,10 @@ class Chunk{
 				for(; $y > 0 and $this->getBlockId($x, $y, $z) === Block::AIR; --$y){
 					$this->setBlockSkyLight($x, $y, $z, 15);
 				}
-				$this->setHeightMap($x, $z, $y);
 
-				for(; $y > 0; --$y){
+				$this->setHeightMap($x, $z, $y);
+				
+				for(; $y > 0; --$y){		
 					$this->setBlockSkyLight($x, $y, $z, 0);
 				}
 			}
@@ -642,11 +642,12 @@ class Chunk{
 	/**
 	 * Unloads the chunk, closing entities and tiles.
 	 *
+	 * @param bool $save
 	 * @param bool $safe Whether to check if there are still players using this chunk
 	 *
 	 * @return bool
 	 */
-	public function unload(bool $safe = true) : bool{
+	public function unload(bool $save = true, bool $safe = true) : bool{
 		if($safe){
 			foreach($this->getEntities() as $entity){
 				if($entity instanceof Player){
@@ -661,17 +662,14 @@ class Chunk{
 			}
 			$entity->close();
 		}
-
 		foreach($this->getTiles() as $tile){
 			$tile->close();
 		}
-
 		return true;
 	}
 
 	/**
 	 * Deserializes tiles and entities from NBT
-	 *
 	 * @param Level $level
 	 */
 	public function initChunk(Level $level){
@@ -973,5 +971,4 @@ class Chunk{
 	public static function chunkBlockHash(int $x, int $y, int $z) : int{
 		return ($x << 12) | ($z << 8) | $y;
 	}
-
 }

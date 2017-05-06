@@ -40,7 +40,7 @@ class RegionLoader{
 	protected $filePath;
 	protected $filePointer;
 	protected $lastSector;
-	/** @var McRegion */
+	/** @var LevelProvider */
 	protected $levelProvider;
 	protected $locationTable = [];
 
