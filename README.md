@@ -38,7 +38,7 @@ You need to request the hosting company you're using to add in Arufa as a server
 * __[Forums: Coming Soon](#)__
 * __[Gitter Chat: Coming Soon](#)__
 * __[Official Twitter Account: Coming Soon](#)__
-* __[Discord Chat: Coming Soon](#)__
+* __[Discord Chat](https://discord.gg/dszqrsf)__
 
 ## Third-party libraries and protocols used
 
