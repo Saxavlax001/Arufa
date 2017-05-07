@@ -1,16 +1,31 @@
 # ![Arufa](http://i.imgur.com/lRJl9gu.jpg)
+![Status](https://img.shields.io/badge/stability-alpha-ff69b4.svg)<br>
+![GitHub contributors](https://img.shields.io/github/contributors/ArufaTeam/Arufa.svg)<br>
+![Owner](https://img.shields.io/badge/owner-AppleDevelops-green.svg)
+## Information
+
+- This is alpha software, you will experience bugs and crashes. You can see our progress [here](https://github.com/ArufaTeam/Arufa/milestones)
+- You can make a pull-request if you want to help.
+- We currently are not accepting any more helpers
+- We are not Tesseract, we are a replacment!
+- This will not be deleted, if this dies the code will still be here
 
 
 ## Acknowledgements
 
 - This is a third-party build of [pmmp.io](https://github.com/pmmp/PocketMine-MP) and [Genisys](https://github.com/iTXTech/Genisys). Arufa is in no way affiliated with [pmmp.io](https://github.com/pmmp/PocketMine-MP) or [Genisys](https://github.com/iTXTech/Genisys).
 - The original code in Arufa is from [PocketMine-MP](https://github.com/PocketMine/PocketMine-MP). All original code structure and base was written by the [PocketMine Team](https://github.com/PocketMine).
-- You can make a pull-request if you want to help.
 
+## Builds
+
+Jenkins: Unknown<br>
+TravisCI: Unkonown<br>
+CircleCI: Unknown<br>
 
 ## Installation
 
 **Self-installation:**<br>
+To install Arufa you will neen to view our Wiki!
 Supported platforms: Linux, Windows, OS X, Raspberry Pi, and ODROID
 
 **Installation on a Hosting Company:**<br>
