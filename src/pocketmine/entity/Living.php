@@ -45,6 +45,8 @@ abstract class Living extends Entity implements Damageable{
 	
 	protected $invisible = false;
 
+	protected $jumpVelocity = 0.42;
+
 	protected function initEntity(){
 		parent::initEntity();
 
@@ -95,7 +97,17 @@ abstract class Living extends Entity implements Damageable{
 		$this->attackTime = 0;
 	}
 
-	public function attack($damage, EntityDamageEvent $source){
+    public function getJumpVelocity() : float{
+        return $this->jumpVelocity + ($this->hasEffect(Effect::JUMP) ? (($this->getEffect(Effect::JUMP)->getAmplifier() + 1) / 10) : 0);
+    }
+
+    public function jump() {
+        if($this->onGround){
+            $this->motionY = $this->getJumpVelocity();
+        }
+    }
+
+        public function attack($damage, EntityDamageEvent $source){
 		if($this->attackTime > 0 or $this->noDamageTicks > 0){
 			$lastCause = $this->getLastDamageCause();
 			if($lastCause !== null and $lastCause->getDamage() >= $damage){
@@ -159,11 +171,15 @@ abstract class Living extends Entity implements Damageable{
 		$this->setMotion($motion);
 	}
 
-	public function kill(){
-		if(!$this->isAlive()){
-			return;
-		}
-		parent::kill();
+	public function kill() {
+        if (!$this->isAlive()) {
+            return;
+        }
+        parent::kill();
+        $this->callDeathEvent();
+    }
+
+    protected function callDeathEvent(){
 		$this->server->getPluginManager()->callEvent($ev = new EntityDeathEvent($this, $this->getDrops()));
 		foreach($ev->getDrops() as $item){
 			$this->getLevel()->dropItem($this, $item);

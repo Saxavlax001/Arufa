@@ -1537,7 +1537,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 		$delta = pow($this->lastX - $to->x, 2) + pow($this->lastY - $to->y, 2) + pow($this->lastZ - $to->z, 2);
 		$deltaAngle = abs($this->lastYaw - $to->yaw) + abs($this->lastPitch - $to->pitch);
 
-		if(!$revert and ($delta >= 0.01 or $deltaAngle >= 1.0)){
+		if(!$revert and ($delta >= 0.0001 or $deltaAngle >= 1.0)){
 
 			$isFirst = ($this->lastX === null or $this->lastY === null or $this->lastZ === null);
 
@@ -1569,6 +1569,14 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 						$this->teleport($ev->getTo());
 					}else{
 						$this->level->addEntityMovement($this->x >> 4, $this->z >> 4, $this->getId(), $this->x, $this->y + $this->getEyeHeight(), $this->z, $this->yaw, $this->pitch, $this->yaw);
+
+                        $distance = $from->distance($to);
+
+                        if($this->isSprinting()){
+                            $this->exhaust(0.1 * $distance, PlayerExhaustEvent::CAUSE_SPRINTING);
+                        }else{
+                            $this->exhaust(0.01 * $distance, PlayerExhaustEvent::CAUSE_WALKING);
+                        }
 					}
 				}
 			}
@@ -1784,6 +1792,20 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 
 		return true;
 	}
+
+    public function doFoodTick(int $tickDiff = 1){
+        if($this->isSurvival()){
+            parent::doFoodTick($tickDiff);
+        }
+    }
+
+    public function exhaust(float $amount, int $cause = PlayerExhaustEvent::CAUSE_CUSTOM) : float{
+        if($this->isSurvival()){
+            return parent::exhaust($amount, $cause);
+        }
+
+        return 0.0;
+    }
 
 	public function checkNetwork(){
 		if(!$this->isOnline()){
@@ -2541,6 +2563,10 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 						$this->foodTick = 0;
 						$this->foodUsageTime = 0;
 
+						foreach ($this->getAttributeMap()->getAll() as $attr){
+						    $attr->resetToDefault();
+                        }
+
 						$this->sendData($this);
 
 						$this->sendSettings();
@@ -2551,6 +2577,7 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 						$this->scheduleUpdate();
 						break;
 					case PlayerActionPacket::ACTION_JUMP:
+					    $this->jump();
 						break 2;
 					case PlayerActionPacket::ACTION_START_SPRINT:
 						$ev = new PlayerToggleSprintEvent($this, true);
@@ -3618,11 +3645,22 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 		return $this->username;
 	}
 
-	public function kill(){
-		if(!$this->spawned){
-			return;
-		}
+	public function kill() {
+        if (!$this->spawned) {
+            return;
+        }
 
+        parent::kill();
+
+        $pk = new RespawnPacket();
+        $pos = $this->getSpawn();
+        $pk->x = $pos->x;
+        $pk->y = $pos->y;
+        $pk->z = $pos->z;
+        $this->dataPacket($pk);
+    }
+
+    protected function callDeathEvent() {
 		$message = "death.attack.generic";
 
 		$params = [
@@ -3735,8 +3773,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 
 		}
 
-		Entity::kill();
-
 		$ev = new PlayerDeathEvent($this, $this->getDrops(), new TranslationContainer($message, $params));
 		$ev->setKeepInventory($this->server->keepInventory);
 		$ev->setKeepExperience($this->server->keepExperience);
@@ -3765,12 +3801,6 @@ class Player extends Human implements CommandSender, InventoryHolder, ChunkLoade
 		$pos = $this->getSpawn();
 
 		$this->setHealth(0);
-
-		$pk = new RespawnPacket();
-		$pk->x = $pos->x;
-		$pk->y = $pos->y;
-		$pk->z = $pos->z;
-		$this->dataPacket($pk);
 	}
 
 	public function attack($damage, EntityDamageEvent $source){

@@ -483,6 +483,22 @@ abstract class Entity extends Location implements Metadatable{
 	 * @param float $value
 	 */
 	public function setScale(float $value){
+        $multiplier = $value / $this->getScale();
+
+        $this->width *= $multiplier;
+        $this->height *= $multiplier;
+        $this->eyeHeight *= $multiplier;
+        $halfWidth = $this->width / 2;
+
+        $this->boundingBox->setBounds(
+            $this->x - $halfWidth,
+            $this->y,
+            $this->z - $halfWidth,
+            $this->x + $halfWidth,
+            $this->y + $this->height,
+            $this->z + $halfWidth
+        );
+
 		$this->setDataProperty(self::DATA_SCALE, self::DATA_TYPE_FLOAT, $value);
 	}
 
@@ -1410,6 +1426,8 @@ abstract class Entity extends Location implements Metadatable{
 			return true;
 		}
 
+		$this->blocksAround = null;
+
 		if($this->keepMovement){
 			$this->boundingBox->offset($dx, $dy, $dz);
 			$this->setPosition($this->temporalVector->setComponents(($this->boundingBox->minX + $this->boundingBox->maxX) / 2, $this->boundingBox->minY, ($this->boundingBox->minZ + $this->boundingBox->maxZ) / 2));
@@ -1539,6 +1557,7 @@ abstract class Entity extends Location implements Metadatable{
 
 			$this->checkChunks();
 
+            $this->checkBlockCollision();
 			$this->checkGroundState($movX, $movY, $movZ, $dx, $dy, $dz);
 			$this->updateFallState($dy, $this->onGround);
 
